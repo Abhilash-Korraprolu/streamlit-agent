@@ -1,56 +1,89 @@
-from langchain.agents import ConversationalChatAgent, AgentExecutor
+from langchain.agents import AgentType
+from langchain.agents import create_pandas_dataframe_agent
 from langchain.callbacks import StreamlitCallbackHandler
 from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
-from langchain.memory.chat_message_histories import StreamlitChatMessageHistory
-from langchain.tools import DuckDuckGoSearchRun
 import streamlit as st
+import pandas as pd
+import os
 
-st.set_page_config(page_title="LangChain: Chat with search", page_icon="🦜")
-st.title("🦜 LangChain: Chat with search")
+file_formats = {
+    "csv": pd.read_csv,
+    "xls": pd.read_excel,
+    "xlsx": pd.read_excel,
+    "xlsm": pd.read_excel,
+    "xlsb": pd.read_excel,
+}
+
+
+def clear_submit():
+    """
+    Clear the Submit Button State
+    Returns:
+
+    """
+    st.session_state["submit"] = False
+
+
+@st.cache_data(ttl="2h")
+def load_data(uploaded_file):
+    try:
+        ext = os.path.splitext(uploaded_file.name)[1][1:].lower()
+    except:
+        ext = uploaded_file.split(".")[-1]
+    if ext in file_formats:
+        return file_formats[ext](uploaded_file)
+    else:
+        st.error(f"Unsupported file format: {ext}")
+        return None
+
+
+st.set_page_config(page_title="LangChain: Chat with pandas DataFrame", page_icon="🦜")
+st.title("🦜 LangChain: Chat with pandas DataFrame")
+
+uploaded_file = st.file_uploader(
+    "Upload a Data file",
+    type=list(file_formats.keys()),
+    help="Various File formats are Support",
+    on_change=clear_submit,
+)
+
+if not uploaded_file:
+    st.warning(
+        "This app uses LangChain's `PythonAstREPLTool` which is vulnerable to arbitrary code execution. Please use caution in deploying and sharing this app."
+    )
+
+if uploaded_file:
+    df = load_data(uploaded_file)
 
 openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+if "messages" not in st.session_state or st.sidebar.button("Clear conversation history"):
+    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
 
-msgs = StreamlitChatMessageHistory()
-memory = ConversationBufferMemory(
-    chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
-)
-if len(msgs.messages) == 0 or st.sidebar.button("Reset chat history"):
-    msgs.clear()
-    msgs.add_ai_message("How can I help you?")
-    st.session_state.steps = {}
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
 
-avatars = {"human": "user", "ai": "assistant"}
-for idx, msg in enumerate(msgs.messages):
-    with st.chat_message(avatars[msg.type]):
-        # Render intermediate steps if any were saved
-        for step in st.session_state.steps.get(str(idx), []):
-            if step[0].tool == "_Exception":
-                continue
-            with st.status(f"**{step[0].tool}**: {step[0].tool_input}", state="complete"):
-                st.write(step[0].log)
-                st.write(step[1])
-        st.write(msg.content)
-
-if prompt := st.chat_input(placeholder="Who won the Women's U.S. Open in 2018?"):
+if prompt := st.chat_input(placeholder="What is this data about?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
     if not openai_api_key:
         st.info("Please add your OpenAI API key to continue.")
         st.stop()
 
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=openai_api_key, streaming=True)
-    tools = [DuckDuckGoSearchRun(name="Search")]
-    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
-    executor = AgentExecutor.from_agent_and_tools(
-        agent=chat_agent,
-        tools=tools,
-        memory=memory,
-        return_intermediate_steps=True,
+    llm = ChatOpenAI(
+        temperature=0, model="gpt-3.5-turbo-0613", openai_api_key=openai_api_key, streaming=True
+    )
+
+    pandas_df_agent = create_pandas_dataframe_agent(
+        llm,
+        df,
+        verbose=True,
+        agent_type=AgentType.OPENAI_FUNCTIONS,
         handle_parsing_errors=True,
     )
+
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        response = executor(prompt, callbacks=[st_cb])
-        st.write(response["output"])
-        st.session_state.steps[str(len(msgs.messages) - 1)] = response["intermediate_steps"]
+        response = pandas_df_agent.run(st.session_state.messages, callbacks=[st_cb])
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.write(response)
