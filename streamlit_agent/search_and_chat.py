@@ -59,9 +59,9 @@ CFO's Question: ### {user_query} ###
 prompt = PromptTemplate(input_variables=['user_query'], template=prompt_template)
 
 # UI-----------------------------------------------------------------------
-col1, col2, col3 = st.columns(3)
-with col2:
-    st.image(image='SSAFull2 copy.png')
+# col1, col2, col3 = st.columns(3)
+# with col2:
+#     st.image(image='SSAFull2 copy.png')
 
 # Create a sidebar
 # st.sidebar.title('Upload your file')
