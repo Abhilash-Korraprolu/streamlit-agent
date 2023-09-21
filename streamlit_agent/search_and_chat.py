@@ -52,8 +52,7 @@ uploaded_file = st.sidebar.file_uploader(
 if uploaded_file:
     df = load_data(uploaded_file)
 
-# openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-openai_api_key = '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'
+openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
 if "messages" not in st.session_state or st.sidebar.button("Clear Chat"):
     st.session_state["messages"] = [{"role": "assistant", "content": 'How can I help?'}]
 
