@@ -38,9 +38,9 @@ def load_data(uploaded_file):
 
 
 st.set_page_config(page_title="AI Data Analyst", page_icon="")
-# col1, col2, col3 = st.columns(3)
-# with col2:
-#     st.image(image='SSAFull2 copy.png')
+col1, col2, col3 = st.columns(3)
+with col2:
+    st.image(image='SSAFull2 copy.png')
 
 st.sidebar.header('Upload')
 uploaded_file = st.sidebar.file_uploader(
