@@ -21,8 +21,8 @@ langchain-experimental = "^0.0.10"
 streamlit = ">=1.26"
 docarray = "^0.38.0"
 hnswlib = "^0.7.0"
-plotly == "^5.16.1"
-openpyxl == "^3.1.2"
+plotly = "^5.16.1"
+openpyxl = "^3.1.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
