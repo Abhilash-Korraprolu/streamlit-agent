@@ -5,7 +5,8 @@ from langchain.chat_models import ChatOpenAI
 import streamlit as st
 import pandas as pd
 import os
-from PIL import Image
+import plotly
+import openpyxl
 
 file_formats = {
     "csv": pd.read_csv,
@@ -39,7 +40,6 @@ def load_data(uploaded_file):
 
 
 st.set_page_config(page_title="AI Data Analyst", page_icon="")
-# logo = Image.open('streamlit_agent/SSAFull2 copy.png')
 col1, col2, col3 = st.columns(3)
 with col2:
     st.image(image='streamlit_agent/SSAFull2 copy.png')
@@ -98,7 +98,6 @@ if prompt := st.chat_input(placeholder="You question"): # Suggested questions ch
 
         st.session_state.messages.append({"role": "assistant", "content": response}) #Memory GPT response
         st.write(response)
-        print('SESSION STATE MSG_____________________/n', st.session_state.messages)
 
 
 # Future Work
